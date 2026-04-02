@@ -1,117 +1,229 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, Image, TextInput, Pressable } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TextInput,
+  Pressable,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { useState } from 'react';
 
-const nomesIniciais = [
-  "Luis",
-  "Fernado",
-  "José",
-]
+type Task = {
+  id: string;
+  text: string;
+  done: boolean;
+};
 
 export default function App() {
+  const [tasks, setTasks] = useState<Task[]>([
+    { id: '1', text: 'Comprar leite', done: false },
+    { id: '2', text: 'Estudar React Native', done: false },
+  ]);
+  const [inputText, setInputText] = useState('');
 
-  var [nomes, setNomes] = useState(nomesIniciais);
-  var [novoNome, setNovoNome] = useState('');
+  const addTask = () => {
+    const trimmed = inputText.trim();
+    if (!trimmed) return;
 
-  const adicionarNome = () => {
-    if (novoNome.trim() !== '') {
-      setNomes([...nomes, novoNome.trim()]);
-      setNovoNome('');
-    }
-  }
+    const newTask: Task = {
+      id: Date.now().toString(),
+      text: trimmed,
+      done: false,
+    };
+
+    setTasks((prev) => [...prev, newTask]);
+    setInputText('');
+  };
+
+  const deleteTask = (id: string) => {
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const toggleTask = (id: string) => {
+    setTasks((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t))
+    );
+  };
+
+  // Renderiza cada item da lista de tarefas
+  const renderTask = ({ item }: { item: Task }) => (
+    <View style={styles.taskRow}>
+      {}
+      <Pressable style={styles.taskLeft} onPress={() => toggleTask(item.id)}>
+        {}
+        <View style={[styles.circle, item.done && styles.circleDone]}>
+          {item.done && <Text style={styles.checkMark}>✓</Text>}
+        </View>
+
+        {}
+        <Text style={[styles.taskText, item.done && styles.taskDone]}>
+          {item.text}
+        </Text>
+      </Pressable>
+
+      {}
+      <Pressable onPress={() => deleteTask(item.id)} style={styles.deleteBtn}>
+        <Text style={styles.deleteText}>✕</Text>
+      </Pressable>
+    </View>
+  );
 
   return (
-    <View style={styles.container}>
-      {
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <StatusBar style="light" />
 
-        nomes.map((nome, index) => (
-          <View key={index} style={styles.elemtentos}>
-            <Text style={styles.itens}> {nome} </Text>
-          </View>
-        ))
-      }
-      <View style={styles.inputContainer}>
+      <Text style={styles.title}>📝 Minhas Tarefas</Text>
 
+      {}
+      <Text style={styles.counter}>
+        {tasks.filter((t) => t.done).length} de {tasks.length} concluídas
+      </Text>
+
+      {}
+      <FlatList
+        data={tasks}
+        keyExtractor={(item) => item.id}
+        renderItem={renderTask}
+        style={styles.list}
+        contentContainerStyle={{ paddingBottom: 12 }}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>Nenhuma tarefa ainda. Adicione uma!</Text>
+        }
+      />
+
+      {}
+      <View style={styles.inputRow}>
         <TextInput
           style={styles.input}
-          placeholder='Digite um novo nome'
-          placeholderTextColor='#fff'
-          value={novoNome}
-          onChangeText={setNovoNome}
-          onSubmitEditing={adicionarNome}
+          placeholder="Nova tarefa..."
+          placeholderTextColor="#64748b"
+          value={inputText}
+          onChangeText={setInputText}
+          onSubmitEditing={addTask}
+          returnKeyType="done"
         />
-        <Pressable style={styles.botao} onPress={adicionarNome}>
-          <Text style={styles.textoBotao}>ADICIONAR</Text>
+        <Pressable style={styles.addBtn} onPress={addTask}>
+          <Text style={styles.addBtnText}>+</Text>
         </Pressable>
-
       </View>
-      <StatusBar style="auto" />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  textoBotao: {
-    color: '#fff',
+  container: {
+    flex: 1,
+    backgroundColor: '#0f172a',
+    paddingTop: 60,
+    paddingHorizontal: 20,
+  },
+  title: {
+    color: '#f1f5f9',
+    fontSize: 26,
     fontWeight: 'bold',
-    fontSize: 16,
+    marginBottom: 4,
   },
-  botao: {
-    backgroundColor: '#c81ecb',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
-    justifyContent: 'center',
+  counter: {
+    color: '#94a3b8',
+    fontSize: 14,
+    marginBottom: 20,
   },
-  inputContainer: {
+  list: {
+    flex: 1,
+  },
+
+  taskRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 20,
-    width: '100%',
-    paddingHorizontal: 20,
+    alignItems: 'center',
+    backgroundColor: '#1e293b',
+    borderRadius: 14,
+    marginBottom: 10,
+    padding: 14,
+  },
+  taskLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+
+  circle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#c81ecb',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  circleDone: {
+    backgroundColor: '#c81ecb',
+    borderColor: '#c81ecb',
+  },
+  checkMark: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+
+  taskText: {
+    color: '#f1f5f9',
+    fontSize: 16,
+    flex: 1,
+  },
+  taskDone: {
+    textDecorationLine: 'line-through',
+    color: '#475569',
+  },
+
+  deleteBtn: {
+    paddingLeft: 12,
+  },
+  deleteText: {
+    color: '#475569',
+    fontSize: 18,
+  },
+
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    gap: 10,
   },
   input: {
     flex: 1,
     backgroundColor: '#1e293b',
-    color: '#fff',
-    padding: 12,
+    color: '#f1f5f9',
     borderRadius: 12,
+    padding: 14,
     fontSize: 16,
     borderWidth: 1,
     borderColor: '#334155',
   },
-  elemtentos: {
+  addBtn: {
     backgroundColor: '#c81ecb',
-    borderRadius: 16,
-    marginTop: 8,
-  },
-  itens: {
-    color: '#f5f5f5',
-    fontSize: 16,
-    fontWeight: '800',
-    padding: 4,
-  },
-  images: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    marginTop: 16
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#0f172a',
+    width: 50,
+    height: 50,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: {
+  addBtnText: {
     color: '#fff',
-    fontSize: 26,
-    fontWeight: `bold`,
+    fontSize: 28,
+    lineHeight: 30,
+    fontWeight: 'bold',
   },
-  subtitle: {
-    color: `#9ca3af`,
-    fontSize: 16,
-    marginTop: 8,
+  emptyText: {
+    color: '#475569',
+    textAlign: 'center',
+    marginTop: 40,
+    fontSize: 15,
   },
-
 });
