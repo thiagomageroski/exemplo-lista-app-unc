@@ -1,5 +1,4 @@
 # 📝 To-Do List — React Native
-
 Aplicativo de lista de tarefas desenvolvido com **React Native + Expo** como atividade acadêmica.
 
 ## ✅ Funcionalidades
