@@ -8,8 +8,10 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Task = {
   id: string;
@@ -17,12 +19,51 @@ type Task = {
   done: boolean;
 };
 
+// Chave usada para salvar/recuperar as tarefas no AsyncStorage
+const STORAGE_KEY = '@todo_app:tasks';
+
 export default function App() {
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: '1', text: 'Comprar leite', done: false },
-    { id: '2', text: 'Estudar React Native', done: false },
-  ]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [inputText, setInputText] = useState('');
+  // Controla se as tarefas já foram carregadas do storage.
+  // Importante para evitar sobrescrever os dados salvos com uma lista vazia
+  // antes do carregamento inicial terminar.
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Carrega as tarefas salvas quando o aplicativo inicia
+  useEffect(() => {
+    const loadTasks = async () => {
+      try {
+        const stored = await AsyncStorage.getItem(STORAGE_KEY);
+        if (stored !== null) {
+          const parsed: Task[] = JSON.parse(stored);
+          setTasks(parsed);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar as tarefas:', error);
+      } finally {
+        setIsLoaded(true);
+      }
+    };
+
+    loadTasks();
+  }, []);
+
+  // Sempre que a lista de tarefas mudar (após o carregamento inicial),
+  // salva no AsyncStorage para garantir a persistência local.
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    const saveTasks = async () => {
+      try {
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      } catch (error) {
+        console.error('Erro ao salvar as tarefas:', error);
+      }
+    };
+
+    saveTasks();
+  }, [tasks, isLoaded]);
 
   const addTask = () => {
     const trimmed = inputText.trim();
@@ -51,25 +92,33 @@ export default function App() {
   // Renderiza cada item da lista de tarefas
   const renderTask = ({ item }: { item: Task }) => (
     <View style={styles.taskRow}>
-      {}
       <Pressable style={styles.taskLeft} onPress={() => toggleTask(item.id)}>
-        {}
         <View style={[styles.circle, item.done && styles.circleDone]}>
           {item.done && <Text style={styles.checkMark}>✓</Text>}
         </View>
 
-        {}
         <Text style={[styles.taskText, item.done && styles.taskDone]}>
           {item.text}
         </Text>
       </Pressable>
 
-      {}
       <Pressable onPress={() => deleteTask(item.id)} style={styles.deleteBtn}>
         <Text style={styles.deleteText}>✕</Text>
       </Pressable>
     </View>
   );
+
+  // Mostra um indicador de carregamento enquanto as tarefas
+  // estão sendo recuperadas do armazenamento local.
+  if (!isLoaded) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <StatusBar style="light" />
+        <ActivityIndicator size="large" color="#c81ecb" />
+        <Text style={styles.loadingText}>Carregando tarefas...</Text>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -80,12 +129,10 @@ export default function App() {
 
       <Text style={styles.title}>📝 Minhas Tarefas</Text>
 
-      {}
       <Text style={styles.counter}>
         {tasks.filter((t) => t.done).length} de {tasks.length} concluídas
       </Text>
 
-      {}
       <FlatList
         data={tasks}
         keyExtractor={(item) => item.id}
@@ -97,7 +144,6 @@ export default function App() {
         }
       />
 
-      {}
       <View style={styles.inputRow}>
         <TextInput
           style={styles.input}
@@ -122,6 +168,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#0f172a',
     paddingTop: 60,
     paddingHorizontal: 20,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#94a3b8',
+    marginTop: 12,
+    fontSize: 15,
   },
   title: {
     color: '#f1f5f9',
